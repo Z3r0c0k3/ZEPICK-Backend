@@ -16,7 +16,7 @@
 
 - Request
 
-  - POST `{"verify-code": "인증코드"}`
+  - POST `{"verify_code": "인증코드"}`
 
 - Response
   - `{"status": "False", "message": "No matching code found."}`
