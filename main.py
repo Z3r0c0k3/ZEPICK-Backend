@@ -7,6 +7,8 @@ from pymongo import MongoClient
 import random
 import string
 import httpx
+from dotenv import load_dotenv
+import os
 
 app = FastAPI()
 
@@ -102,7 +104,13 @@ async def generate_code(request: CodeGenRequest):
             headers = {
                 'Content-Type': 'application/json'
             }
-            response = requests.post("https://discord.com/api/webhooks/1346327156157976588/gQK_nm1lIOUv0Nsz6AJ_q2DzXIhnuKEygA9Owpd5npGFj18YOB5ixs8tKKKGS1zAuO6n", data=json.dumps(embed), headers=headers)
+            # Load environment variables from .env file
+            load_dotenv()
+
+            # Get the webhook URL from environment variables
+            webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
+
+            response = requests.post(webhook_url, data=json.dumps(embed), headers=headers)
             if response.status_code == 204:
                 print('웹훅 전송 성공!')
             else:
@@ -121,7 +129,7 @@ async def generate_code(request: CodeGenRequest):
 
             # 새로운 컬렉션 생성 및 데이터 삽입
             new_collection = db[random_code]
-            new_collection.insert_one({"uuid": request.uuid, "ip": request.ip, "username": username})
+            new_collection.insert_one({"uuid": request.uuid, "ip": request.ip, "username": username, "avatar": avatar})
 
             return {"status": "True", "code": random_code}
         else:
@@ -130,6 +138,10 @@ async def generate_code(request: CodeGenRequest):
 @app.post("/verify/verify-code")
 async def verify_code(request: VerifyCodeRequest):
     if verify_codes_collection.find_one({"code": request.verify_code}):
-        return {"status": "True"}
+        user_data = db[request.verify_code].find_one({}, {"_id": 0, "avatar": 1})
+        if user_data:
+            return {"status": "True", "avatar": (user_data["avatar"]+"/100")}
+        else:
+            return {"status": "False", "message": "Avatar URL not found."}
     else:
         return {"status": "False", "message": "No matching code found."}
